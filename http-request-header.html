@@ -1,0 +1,165 @@
+<!--
+  Copyright 2018 IBM Corp.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<script type="text/x-red" data-template-name="http-request-header">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row node-input-item-container-row">
+        <ol id="node-input-item-container"></ol>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="http-request-header">
+    <p>A simple node to help configuring HTTP Request Header</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('http-request-header',{
+        category: 'function',
+        color: '#FFAAAA',
+        defaults: {
+            name: {value:''},
+            items: {value:[{k:'', v:'', vt:'str'}]},
+        },
+        inputs:1,
+        outputs:1,
+        icon: 'header.png',
+        label: function() {
+            return this.name||'http request header'
+        },
+        oneditprepare: function() {
+            var node = this
+
+            var outputCount = $('#node-input-outputs').val('{}')
+            
+            function resizeItem(item) {
+                var newWidth = item.width()
+                var valueField = item.find('.node-input-item-value')
+                
+                valueField.typedInput('width',(newWidth-70))
+            }
+
+            $('#node-input-item-container').css('min-height','250px').css('min-width','450px').editableList({
+                addItem: function(row,i,opt) {
+                    if (!opt.hasOwnProperty('r')) {
+                        opt.r = {}
+                    }
+                    var item = opt.r
+                    if (!opt.hasOwnProperty('i')) {
+                        opt._i = Math.floor((0x99999-0x10000)*Math.random()).toString()
+                    }
+                    row.css({
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap'
+                    })
+                    var rrrr = $('<div/>').appendTo(row)
+                    var keyField = $('<input/>', {
+                        class:'node-input-item-key',
+                        type:'text',
+                        style:'margin-left: 5px; width: 40%;',
+                        placeholder:'Key', 
+                        title:'HTTP Request Header Key'
+                    }).appendTo(rrrr)
+                    var valueField = $('<input/>', {
+                        class:'node-input-item-value',
+                        type:'text',
+                        style:'margin-left: 5px; width: 55%;',
+                        placeholder:'Value', 
+                        title:'HTTP Request Header Value'
+                    }).appendTo(rrrr)
+                    .typedInput({default:'str',types:['msg','flow','global','str','num','env']})
+
+                    // Set Item KV
+                    keyField.val(item.k)
+                    valueField.typedInput('value',item.v)
+                    valueField.typedInput('type',item.vt||'str')
+                    
+                    var currentOutputs = JSON.parse(outputCount.val()||'{}')
+                    currentOutputs[opt.hasOwnProperty('i')?opt.i:opt._i] = i
+                    outputCount.val(JSON.stringify(currentOutputs))
+                },
+                removeItem: function(opt) {
+                    var currentOutputs = JSON.parse(outputCount.val()||'{}')
+                    if (opt.hasOwnProperty('i')) {
+                        currentOutputs[opt.i] = -1
+                    } else {
+                        delete currentOutputs[opt._i]
+                    }
+                    var items = $('#node-input-item-container').editableList('items')
+                    items.each(function(i) {
+                        $(this).find('.node-input-item-index').html(i+1)
+                        var data = $(this).data('data')
+                        currentOutputs[data.hasOwnProperty('i')?data.i:data._i] = i
+                    })
+                    outputCount.val(JSON.stringify(currentOutputs))
+                },
+                resizeItem: resizeItem,
+                sortItems: function(items) {
+                    var currentOutputs = JSON.parse(outputCount.val()||'{}')
+                    var items = $('#node-input-item-container').editableList('items')
+                    items.each(function(i) {
+                        $(this).find('.node-input-item-index').html(i+1)
+                        var data = $(this).data('data')
+                        currentOutputs[data.hasOwnProperty('i')?data.i:data._i] = i
+                    })
+                    outputCount.val(JSON.stringify(currentOutputs))
+                },
+                sortable: true,
+                removable: true
+            })
+
+            for (var i=0;i<this.items.length;i++) {
+                var item = this.items[i]
+                $('#node-input-item-container').editableList('addItem',{
+                    r:item,
+                    i:i
+                })
+            }
+        },
+        oneditsave: function() {
+            var items = $('#node-input-item-container').editableList('items')
+            var itemset
+            var node = this
+            node.items = []
+            items.each(function(i) {
+                var itemData = $(this).data('data')
+                var item = $(this)
+                var obj = {}
+                obj.k = item.find('.node-input-item-key').val()
+                obj.v = item.find('.node-input-item-value').typedInput('value')
+                obj.vt = item.find('.node-input-item-value').typedInput('type')
+                node.items.push(obj)
+            })
+        },
+        oneditresize: function(size) {
+            var rows = $('#dialog-form>div:not(.node-input-http-header-container-row)')
+            var height = size.height
+            for (var i=0;i<rows.size();i++) {
+                height -= $(rows[i]).outerHeight(true)
+            }
+            var editorRow = $('#dialog-form>div.node-input-http-header-container-row')
+            height -= (parseInt(editorRow.css('marginTop'))+parseInt(editorRow.css('marginBottom')))
+            $('#node-input-http-header-container').editableList('height',height)
+        },
+        oneditcancel: function () {
+            //
+        },
+        oneditdelete: function () {
+            //
+        }
+    })
+</script>
